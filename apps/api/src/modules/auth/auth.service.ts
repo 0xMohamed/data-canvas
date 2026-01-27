@@ -96,7 +96,6 @@ export const refreshAccessToken = async (refreshToken: string) => {
     
         return { accessToken };
     } catch (e) {
-        // لو AppError سيبه يطلع
         if (e instanceof AppError) throw e;
     
         throw new AppError({
