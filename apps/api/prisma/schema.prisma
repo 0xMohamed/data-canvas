@@ -14,10 +14,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  canvases Canvas[]
+  documents Document[]
 }
 
-model Canvas {
+model Document {
   id          String   @id @default(cuid())
   ownerId     String
   title       String
@@ -28,22 +28,33 @@ model Canvas {
   updatedAt   DateTime @updatedAt
 
   owner  User    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  slides Slide[]
+}
+
+model Slide {
+  id        String   @id @default(cuid())
+  documentId  String
+  title       String
+  themeId     String
+  order       Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
   blocks Block[]
+
+  @@index([documentId, order])
 }
 
 model Block {
   id        String   @id @default(cuid())
-  canvasId  String
+  slideId   String
   type      String
-  x         Int
-  y         Int
-  w         Int
-  h         Int
   content   Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  canvas Canvas @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  slide Slide @relation(fields: [slideId], references: [id], onDelete: Cascade)
 
-  @@index([canvasId])
+  @@index([slideId])
 }
