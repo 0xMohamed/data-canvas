@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './../routes/__root'
 import { Route as SignupRouteImport } from './../routes/signup'
 import { Route as LoginRouteImport } from './../routes/login'
 import { Route as ForbiddenRouteImport } from './../routes/forbidden'
+import { Route as EditorRouteImport } from './../routes/editor'
 import { Route as DashboardRouteImport } from './../routes/dashboard'
 import { Route as IndexRouteImport } from './../routes/index'
+import { Route as EditorIndexRouteImport } from './../routes/editor.index'
 import { Route as EditorDocumentIdRouteImport } from './../routes/editor.$documentId'
 
 const SignupRoute = SignupRouteImport.update({
@@ -31,6 +33,11 @@ const ForbiddenRoute = ForbiddenRouteImport.update({
   path: '/forbidden',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EditorRoute = EditorRouteImport.update({
+  id: '/editor',
+  path: '/editor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -41,19 +48,26 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EditorIndexRoute = EditorIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EditorRoute,
+} as any)
 const EditorDocumentIdRoute = EditorDocumentIdRouteImport.update({
-  id: '/editor/$documentId',
-  path: '/editor/$documentId',
-  getParentRoute: () => rootRouteImport,
+  id: '/$documentId',
+  path: '/$documentId',
+  getParentRoute: () => EditorRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/editor': typeof EditorRouteWithChildren
   '/forbidden': typeof ForbiddenRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/editor/$documentId': typeof EditorDocumentIdRoute
+  '/editor/': typeof EditorIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,25 +76,30 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/editor/$documentId': typeof EditorDocumentIdRoute
+  '/editor': typeof EditorIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/editor': typeof EditorRouteWithChildren
   '/forbidden': typeof ForbiddenRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/editor/$documentId': typeof EditorDocumentIdRoute
+  '/editor/': typeof EditorIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/editor'
     | '/forbidden'
     | '/login'
     | '/signup'
     | '/editor/$documentId'
+    | '/editor/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -89,23 +108,26 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/editor/$documentId'
+    | '/editor'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/editor'
     | '/forbidden'
     | '/login'
     | '/signup'
     | '/editor/$documentId'
+    | '/editor/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  EditorRoute: typeof EditorRouteWithChildren
   ForbiddenRoute: typeof ForbiddenRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
-  EditorDocumentIdRoute: typeof EditorDocumentIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -131,6 +153,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForbiddenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/editor': {
+      id: '/editor'
+      path: '/editor'
+      fullPath: '/editor'
+      preLoaderRoute: typeof EditorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -145,23 +174,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/editor/': {
+      id: '/editor/'
+      path: '/'
+      fullPath: '/editor/'
+      preLoaderRoute: typeof EditorIndexRouteImport
+      parentRoute: typeof EditorRoute
+    }
     '/editor/$documentId': {
       id: '/editor/$documentId'
-      path: '/editor/$documentId'
+      path: '/$documentId'
       fullPath: '/editor/$documentId'
       preLoaderRoute: typeof EditorDocumentIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof EditorRoute
     }
   }
 }
 
+interface EditorRouteChildren {
+  EditorDocumentIdRoute: typeof EditorDocumentIdRoute
+  EditorIndexRoute: typeof EditorIndexRoute
+}
+
+const EditorRouteChildren: EditorRouteChildren = {
+  EditorDocumentIdRoute: EditorDocumentIdRoute,
+  EditorIndexRoute: EditorIndexRoute,
+}
+
+const EditorRouteWithChildren =
+  EditorRoute._addFileChildren(EditorRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  EditorRoute: EditorRouteWithChildren,
   ForbiddenRoute: ForbiddenRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
-  EditorDocumentIdRoute: EditorDocumentIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

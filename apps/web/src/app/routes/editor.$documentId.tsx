@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { isAxiosError } from "axios";
 import { protectRoute } from "@/features/auth/routeProtection";
 import { FullPageSpinner } from "@/components/ui/spinner";
 import { EditorCanvas } from "@/features/editor";
@@ -14,10 +15,17 @@ export const Route = createFileRoute("/editor/$documentId")({
     });
 
     // Prefetch the document so the editor loads quickly after the auth guard passes.
-    await context.queryClient.ensureQueryData({
-      queryKey: ["documents", params.documentId],
-      queryFn: () => getDocument(params.documentId),
-    });
+    try {
+      await context.queryClient.ensureQueryData({
+        queryKey: ["documents", params.documentId],
+        queryFn: () => getDocument(params.documentId),
+      });
+    } catch (err) {
+      if (isAxiosError(err) && err.response?.status === 404) {
+        throw redirect({ to: "/dashboard" });
+      }
+      throw err;
+    }
   },
   component: EditorDocumentRoute,
 });
@@ -27,8 +35,7 @@ function EditorDocumentRoute() {
   const documentQuery = useDocument(documentId);
 
   if (documentQuery.isLoading) return <FullPageSpinner label="Loading document…" />;
-  if (documentQuery.isError)
-    return <div className="p-6">Failed to load document</div>;
+  if (documentQuery.isError) throw documentQuery.error;
 
   return <EditorCanvas />;
 }
