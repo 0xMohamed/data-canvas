@@ -330,14 +330,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/canvases": {
+    "/documents": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List canvases */
+        /** List documents */
         get: {
             parameters: {
                 query?: {
@@ -357,7 +357,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ListCanvasesResponse"];
+                        "application/json": components["schemas"]["ListDocumentsResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -381,7 +381,7 @@ export interface paths {
             };
         };
         put?: never;
-        /** Create canvas */
+        /** Create document */
         post: {
             parameters: {
                 query?: never;
@@ -391,7 +391,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["CreateCanvasRequest"];
+                    "application/json": components["schemas"]["CreateDocumentRequest"];
                 };
             };
             responses: {
@@ -401,7 +401,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["CreateCanvasResponse"];
+                        "application/json": components["schemas"]["CreateDocumentResponse"];
                     };
                 };
                 /** @description Validation error */
@@ -454,14 +454,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/canvases/{id}": {
+    "/documents/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get canvas with blocks */
+        /** Get document (snapshot + meta) */
         get: {
             parameters: {
                 query?: never;
@@ -479,7 +479,88 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["GetCanvasWithBlocksResponse"];
+                        "application/json": components["schemas"]["DocumentResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": {
+                         *         "code": "UNAUTHORIZED",
+                         *         "message": "Invalid credentials",
+                         *         "details": null
+                         *       }
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorEnvelope"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": {
+                         *         "code": "FORBIDDEN",
+                         *         "message": "You do not have access to this resource",
+                         *         "details": null
+                         *       }
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorEnvelope"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "error": {
+                         *         "code": "NOT_FOUND",
+                         *         "message": "Resource not found",
+                         *         "details": null
+                         *       }
+                         *     }
+                         */
+                        "application/json": components["schemas"]["ErrorEnvelope"];
+                    };
+                };
+            };
+        };
+        /** Update document snapshot (with revision check) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["UpdateDocumentSnapshotRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UpdateSnapshotResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -518,11 +599,19 @@ export interface paths {
                         "application/json": components["schemas"]["ErrorEnvelope"];
                     };
                 };
+                /** @description Conflict (revision mismatch) */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorEnvelope"];
+                    };
+                };
             };
         };
-        put?: never;
         post?: never;
-        /** Delete canvas */
+        /** Delete document */
         delete: {
             parameters: {
                 query?: never;
@@ -599,7 +688,7 @@ export interface paths {
         };
         options?: never;
         head?: never;
-        /** Update canvas */
+        /** Update document metadata */
         patch: {
             parameters: {
                 query?: never;
@@ -611,7 +700,7 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json": components["schemas"]["UpdateCanvasRequest"];
+                    "application/json": components["schemas"]["UpdateDocumentMetadataRequest"];
                 };
             };
             responses: {
@@ -621,7 +710,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["UpdateCanvasResponse"];
+                        "application/json": components["schemas"]["UpdateDocumentMetadataResponse"];
                     };
                 };
                 /** @description Validation error */
@@ -688,360 +777,14 @@ export interface paths {
         };
         trace?: never;
     };
-    "/canvases/{id}/blocks": {
+    "/public/documents/{token}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** Create block in canvas */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["CreateBlockRequest"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["BlockResponse"];
-                    };
-                };
-                /** @description Validation error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "error": {
-                         *         "code": "VALIDATION_ERROR",
-                         *         "message": "Validation error",
-                         *         "details": {
-                         *           "fieldErrors": {
-                         *             "email": [
-                         *               "Invalid email"
-                         *             ]
-                         *           }
-                         *         }
-                         *       }
-                         *     }
-                         */
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "error": {
-                         *         "code": "UNAUTHORIZED",
-                         *         "message": "Invalid credentials",
-                         *         "details": null
-                         *       }
-                         *     }
-                         */
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "error": {
-                         *         "code": "NOT_FOUND",
-                         *         "message": "Resource not found",
-                         *         "details": null
-                         *       }
-                         *     }
-                         */
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Bulk update blocks in canvas */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["BulkUpdateBlocksRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["BulkUpdateBlocksResponse"];
-                    };
-                };
-                /** @description Validation error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "error": {
-                         *         "code": "VALIDATION_ERROR",
-                         *         "message": "Validation error",
-                         *         "details": {
-                         *           "fieldErrors": {
-                         *             "email": [
-                         *               "Invalid email"
-                         *             ]
-                         *           }
-                         *         }
-                         *       }
-                         *     }
-                         */
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "error": {
-                         *         "code": "UNAUTHORIZED",
-                         *         "message": "Invalid credentials",
-                         *         "details": null
-                         *       }
-                         *     }
-                         */
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "error": {
-                         *         "code": "NOT_FOUND",
-                         *         "message": "Resource not found",
-                         *         "details": null
-                         *       }
-                         *     }
-                         */
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
-    "/blocks/{blockId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete a block */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    blockId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description No Content */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "error": {
-                         *         "code": "UNAUTHORIZED",
-                         *         "message": "Invalid credentials",
-                         *         "details": null
-                         *       }
-                         *     }
-                         */
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "error": {
-                         *         "code": "NOT_FOUND",
-                         *         "message": "Resource not found",
-                         *         "details": null
-                         *       }
-                         *     }
-                         */
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        /** Update a block */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    blockId: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["UpdateBlockRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["BlockResponse"];
-                    };
-                };
-                /** @description Validation error */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "error": {
-                         *         "code": "VALIDATION_ERROR",
-                         *         "message": "Validation error",
-                         *         "details": {
-                         *           "fieldErrors": {
-                         *             "email": [
-                         *               "Invalid email"
-                         *             ]
-                         *           }
-                         *         }
-                         *       }
-                         *     }
-                         */
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "error": {
-                         *         "code": "UNAUTHORIZED",
-                         *         "message": "Invalid credentials",
-                         *         "details": null
-                         *       }
-                         *     }
-                         */
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-                /** @description Not found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "error": {
-                         *         "code": "NOT_FOUND",
-                         *         "message": "Resource not found",
-                         *         "details": null
-                         *       }
-                         *     }
-                         */
-                        "application/json": components["schemas"]["ErrorEnvelope"];
-                    };
-                };
-            };
-        };
-        trace?: never;
-    };
-    "/public/canvases/{token}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get public canvas with blocks */
+        /** Get public document (snapshot + meta) */
         get: {
             parameters: {
                 query?: never;
@@ -1059,7 +802,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["GetCanvasWithBlocksResponse"];
+                        "application/json": {
+                            data: components["schemas"]["DocumentResponse"];
+                        };
                     };
                 };
                 /** @description Not found */
@@ -1164,109 +909,62 @@ export interface components {
         MeResponse: {
             data: components["schemas"]["UserPublic"];
         };
-        CreateCanvasResponse: {
-            /** @example Canvas created */
-            message: string;
-            data: components["schemas"]["Canvas"];
-        };
-        Canvas: {
-            id: string;
-            title: string;
-            description: string | null;
-            isPublic: boolean;
-            publicToken: string | null;
-            ownerId: string;
-            createdAt: string;
-            updatedAt: string;
-        };
-        CreateCanvasRequest: {
-            /** @example My first canvas */
-            title: string;
-            /** @example test */
-            description?: string | null;
-            /** @example false */
-            isPublic?: boolean;
-        };
-        ListCanvasesResponse: {
+        ListDocumentsResponse: {
             data: {
-                items: components["schemas"]["Canvas"][];
+                items: components["schemas"]["DocumentMeta"][];
                 page: number;
                 limit: number;
                 total: number;
                 totalPages: number;
             };
         };
-        GetCanvasWithBlocksResponse: {
-            data: {
-                canvas: components["schemas"]["Canvas"];
-                blocks: components["schemas"]["Block"][];
-            };
-        };
-        Block: {
+        DocumentMeta: {
             id: string;
-            canvasId: string;
-            type: string;
-            x: number;
-            y: number;
-            w: number;
-            h: number;
-            content?: unknown;
+            title: string;
+            description: string | null;
+            isPublic: boolean;
+            publicToken: string | null;
+            ownerId?: string;
             createdAt: string;
             updatedAt: string;
         };
-        UpdateCanvasResponse: {
-            /** @example Canvas updated */
+        CreateDocumentResponse: {
+            /** @example Document created */
             message: string;
-            data: components["schemas"]["Canvas"];
+            data: components["schemas"]["DocumentMeta"];
         };
-        UpdateCanvasRequest: {
-            /** @example New title */
-            title?: string;
-            /** @example null */
+        CreateDocumentRequest: {
+            /** @example My document */
+            title: string;
             description?: string | null;
-            /** @example true */
+            /** @default false */
+            isPublic: boolean;
+        };
+        DocumentResponse: {
+            id: string;
+            title: string;
+            description: string | null;
+            isPublic: boolean;
+            revision: number;
+            data?: unknown;
+        };
+        UpdateDocumentMetadataResponse: {
+            /** @example Document updated */
+            message: string;
+            data: components["schemas"]["DocumentMeta"];
+        };
+        UpdateDocumentMetadataRequest: {
+            title?: string;
+            description?: string | null;
             isPublic?: boolean;
         };
-        BlockResponse: {
-            message: string;
-            data: components["schemas"]["Block"];
+        UpdateSnapshotResponse: {
+            revision: number;
+            savedAt: string;
         };
-        CreateBlockRequest: {
-            /** @example text */
-            type: string;
-            /** @example 100 */
-            x: number;
-            /** @example 200 */
-            y: number;
-            /** @example 320 */
-            w: number;
-            /** @example 120 */
-            h: number;
-            /**
-             * @example {
-             *       "text": "Hello canvas"
-             *     }
-             */
-            content?: unknown;
-        };
-        BulkUpdateBlocksResponse: {
-            message: string;
-            data: {
-                blocks: components["schemas"]["Block"][];
-            };
-        };
-        BulkUpdateBlocksRequest: {
-            updates: {
-                id: string;
-                patch: components["schemas"]["UpdateBlockRequest"];
-            }[];
-        };
-        UpdateBlockRequest: {
-            x?: number;
-            y?: number;
-            w?: number;
-            h?: number;
-            content?: unknown;
+        UpdateDocumentSnapshotRequest: {
+            baseRevision: number;
+            data?: unknown;
         };
     };
     responses: never;

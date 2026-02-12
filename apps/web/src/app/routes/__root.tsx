@@ -1,5 +1,11 @@
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { createRootRouteWithContext, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import type { queryClient } from "@/lib/query-client";
+import { FullPageSpinner } from "@/components/ui/spinner";
+
+type RouterContext = {
+  queryClient: typeof queryClient;
+};
 
 const RootLayout = () => (
   <>
@@ -10,8 +16,8 @@ const RootLayout = () => (
       <Link to="/editor" className="[&.active]:font-bold">
         Editor
       </Link>{' '}
-      <Link to="/canvas" className="[&.active]:font-bold">
-        Canvas
+      <Link to="/dashboard" className="[&.active]:font-bold">
+        Documents
       </Link>{' '}
       <Link to="/about" className="[&.active]:font-bold">
         About
@@ -19,8 +25,13 @@ const RootLayout = () => (
     </div>
     <hr /> */}
     <Outlet />
-    <TanStackRouterDevtools />
+    {import.meta.env.DEV && <TanStackRouterDevtools />}
   </>
 );
 
-export const Route = createRootRoute({ component: RootLayout });
+export const Route = createRootRouteWithContext<RouterContext>()({
+  component: RootLayout,
+  // This shows a consistent spinner whenever any route is pending due to async
+  // `beforeLoad` work (auth/RBAC guards, permission checks, data prefetching, etc.).
+  pendingComponent: () => <FullPageSpinner />,
+});

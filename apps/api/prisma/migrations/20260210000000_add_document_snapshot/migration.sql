@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Document" ADD COLUMN "data" JSONB,
+ADD COLUMN "revision" INTEGER NOT NULL DEFAULT 0;

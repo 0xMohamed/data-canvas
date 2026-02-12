@@ -1,93 +1,108 @@
-import type { BlockBase, BlockContent } from '../model/types'
+import { useRef, useState, useCallback } from "react";
+import { useEditorStore } from "../state/editor.store";
+import { renderBlock } from "../registry/blockRegistry";
+import type { EditorBlock } from "../models/editorTypes";
+import { cn } from "@/lib/utils";
+import { scheduleSaveAfterTyping, saveOnDragEnd } from "../state/autosave";
 
-type BlockViewProps = {
-  block: BlockBase
-  onContentChange: (next: BlockContent) => void
-}
+export function BlockView(props: { block: EditorBlock; slideId: string }) {
+  const { block } = props;
+  const selectedBlockId = useEditorStore((s) => s.selectedBlockId);
+  const isDragging = useEditorStore((s) => s.isDragging);
+  const selectBlock = useEditorStore((s) => s.selectBlock);
+  const setDragging = useEditorStore((s) => s.setDragging);
+  const commitMove = useEditorStore((s) => s.commitMove);
+  const updateBlockContent = useEditorStore((s) => s.updateBlockContent);
+  const pushHistoryCheckpoint = useEditorStore((s) => s.pushHistoryCheckpoint);
 
-export function BlockView(props: BlockViewProps) {
-  const { content } = props.block
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+  const pointerStartRef = useRef<{ clientX: number; clientY: number; blockX: number; blockY: number } | null>(null);
 
-  switch (content.type) {
-    case 'heading':
-      return (
-        <EditableText
-          value={content.text}
-          className="text-3xl font-extrabold leading-tight tracking-tight"
-          onChange={(text) => props.onContentChange({ type: 'heading', text })}
-        />
-      )
-    case 'text':
-      return (
-        <EditableText
-          value={content.text}
-          className="text-sm leading-relaxed text-[color:var(--slide-text)]/90"
-          onChange={(text) => props.onContentChange({ type: 'text', text })}
-        />
-      )
-    case 'stat':
-      return (
-        <div className="flex flex-col gap-2">
-          <EditableText
-            value={content.label}
-            className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--slide-muted)]"
-            onChange={(label) => props.onContentChange({ ...content, label })}
-          />
-          <div className="text-4xl font-extrabold leading-none">{content.value}</div>
-        </div>
-      )
-    case 'chart':
-      return (
-        <div>
-          <div className="text-sm font-semibold">{content.title}</div>
-          <div
-            className="mt-3 h-36 rounded-lg border border-dashed border-[color:var(--slide-gridLine)] bg-gradient-to-b from-white/10 to-white/5"
-          />
-        </div>
-      )
-    case 'comparison':
-      return (
-        <div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className={comparisonPanelClass}>
-              <div className="text-xs font-semibold text-[color:var(--slide-text)]/85">{content.leftLabel}</div>
-            </div>
-            <div className={comparisonPanelClass}>
-              <div className="text-xs font-semibold text-[color:var(--slide-text)]/85">{content.rightLabel}</div>
-            </div>
-          </div>
-        </div>
-      )
-    case 'media':
-      return (
-        <div>
-          <div className="text-xs text-[color:var(--slide-muted)]">{content.caption ?? 'Media'}</div>
-          <div
-            className="mt-3 h-40 rounded-xl border border-[color:var(--slide-gridLine)] bg-white/5"
-          />
-        </div>
-      )
-  }
-}
+  const selected = selectedBlockId === block.id;
 
-function EditableText(props: {
-  value: string
-  onChange: (next: string) => void
-  className?: string
-}) {
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.button !== 0) return;
+      selectBlock(block.id);
+      pointerStartRef.current = {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        blockX: block.x,
+        blockY: block.y,
+      };
+      setTranslate({ x: 0, y: 0 });
+      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    },
+    [block.id, block.x, block.y, selectBlock]
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const start = pointerStartRef.current;
+      if (!start) return;
+      setDragging(true);
+      const dx = e.clientX - start.clientX;
+      const dy = e.clientY - start.clientY;
+      setTranslate({ x: dx, y: dy });
+    },
+    [setDragging]
+  );
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+      const start = pointerStartRef.current;
+      if (!start) return;
+      setDragging(false);
+      pointerStartRef.current = null;
+      const dx = e.clientX - start.clientX;
+      const dy = e.clientY - start.clientY;
+      const newX = Math.round(start.blockX + dx);
+      const newY = Math.round(start.blockY + dy);
+      pushHistoryCheckpoint();
+      commitMove(block.id, newX, newY);
+      setTranslate({ x: 0, y: 0 });
+      saveOnDragEnd();
+    },
+    [block.id, commitMove, pushHistoryCheckpoint, setDragging]
+  );
+
+  const handleContentChange = useCallback(
+    (content: unknown) => {
+      pushHistoryCheckpoint();
+      updateBlockContent(block.id, content);
+      scheduleSaveAfterTyping();
+    },
+    [block.id, updateBlockContent, pushHistoryCheckpoint]
+  );
+
   return (
     <div
-      contentEditable
-      suppressContentEditableWarning
-      className={['outline-none focus:outline-none', props.className].filter(Boolean).join(' ')}
-      onBlur={(e) => {
-        props.onChange((e.currentTarget.textContent ?? '').trim())
+      className={cn(
+        "absolute min-w-[120px] rounded-xl border bg-[color:var(--slide-surface)] p-3 shadow-sm cursor-grab active:cursor-grabbing",
+        selected && !isDragging && "ring-2 ring-[color:var(--slide-accent)]"
+      )}
+      style={{
+        left: block.x,
+        top: block.y,
+        transform: translate.x || translate.y ? `translate(${translate.x}px, ${translate.y}px)` : undefined,
+      }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={(e) => {
+        if (pointerStartRef.current && e.buttons === 0) {
+          setDragging(false);
+          pointerStartRef.current = null;
+        }
       }}
     >
-      {props.value}
+      <div
+        className="pointer-events-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {renderBlock(block, selected, handleContentChange)}
+      </div>
     </div>
-  )
+  );
 }
-
-const comparisonPanelClass =
-  'h-[120px] rounded-xl border border-[color:var(--slide-gridLine)] bg-white/5 p-3'

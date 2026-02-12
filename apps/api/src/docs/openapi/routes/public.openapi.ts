@@ -1,29 +1,26 @@
 import { registry } from "../registry";
 import { z } from "../zod";
-import { getCanvasWithBlocksResponseSchema } from "../../../modules/canvas/canvas.schema";
-
+import { documentResponseSchema } from "../../../modules/documents/documents.schema";
 import { errorEnvelopeSchema } from "../schemas/error.schema";
 import { errorExamples } from "../schemas/error.examples";
 
 const publicTokenParamsSchema = z
-  .object({
-    token: z.string().min(10),
-  })
+  .object({ token: z.string().min(10) })
   .openapi("PublicTokenParams");
 
 registry.registerPath({
   method: "get",
-  path: "/public/canvases/{token}",
+  path: "/public/documents/{token}",
   tags: ["Public"],
-  summary: "Get public canvas with blocks",
-  request: {
-    params: publicTokenParamsSchema,
-  },
+  summary: "Get public document (snapshot + meta)",
+  request: { params: publicTokenParamsSchema },
   responses: {
     200: {
       description: "OK",
       content: {
-        "application/json": { schema: getCanvasWithBlocksResponseSchema },
+        "application/json": {
+          schema: z.object({ data: documentResponseSchema }),
+        },
       },
     },
     404: {

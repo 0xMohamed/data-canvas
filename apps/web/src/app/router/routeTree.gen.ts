@@ -11,10 +11,10 @@
 import { Route as rootRouteImport } from './../routes/__root'
 import { Route as SignupRouteImport } from './../routes/signup'
 import { Route as LoginRouteImport } from './../routes/login'
-import { Route as EditorRouteImport } from './../routes/editor'
+import { Route as ForbiddenRouteImport } from './../routes/forbidden'
 import { Route as DashboardRouteImport } from './../routes/dashboard'
 import { Route as IndexRouteImport } from './../routes/index'
-import { Route as EditorCanvasIdRouteImport } from './../routes/editor.$canvasId'
+import { Route as EditorDocumentIdRouteImport } from './../routes/editor.$documentId'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -26,9 +26,9 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EditorRoute = EditorRouteImport.update({
-  id: '/editor',
-  path: '/editor',
+const ForbiddenRoute = ForbiddenRouteImport.update({
+  id: '/forbidden',
+  path: '/forbidden',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -41,70 +41,71 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EditorCanvasIdRoute = EditorCanvasIdRouteImport.update({
-  id: '/$canvasId',
-  path: '/$canvasId',
-  getParentRoute: () => EditorRoute,
+const EditorDocumentIdRoute = EditorDocumentIdRouteImport.update({
+  id: '/editor/$documentId',
+  path: '/editor/$documentId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
-  '/editor': typeof EditorRouteWithChildren
+  '/forbidden': typeof ForbiddenRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/editor/$canvasId': typeof EditorCanvasIdRoute
+  '/editor/$documentId': typeof EditorDocumentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
-  '/editor': typeof EditorRouteWithChildren
+  '/forbidden': typeof ForbiddenRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/editor/$canvasId': typeof EditorCanvasIdRoute
+  '/editor/$documentId': typeof EditorDocumentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
-  '/editor': typeof EditorRouteWithChildren
+  '/forbidden': typeof ForbiddenRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
-  '/editor/$canvasId': typeof EditorCanvasIdRoute
+  '/editor/$documentId': typeof EditorDocumentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/dashboard'
-    | '/editor'
+    | '/forbidden'
     | '/login'
     | '/signup'
-    | '/editor/$canvasId'
+    | '/editor/$documentId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/dashboard'
-    | '/editor'
+    | '/forbidden'
     | '/login'
     | '/signup'
-    | '/editor/$canvasId'
+    | '/editor/$documentId'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
-    | '/editor'
+    | '/forbidden'
     | '/login'
     | '/signup'
-    | '/editor/$canvasId'
+    | '/editor/$documentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
-  EditorRoute: typeof EditorRouteWithChildren
+  ForbiddenRoute: typeof ForbiddenRoute
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
+  EditorDocumentIdRoute: typeof EditorDocumentIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -123,11 +124,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/editor': {
-      id: '/editor'
-      path: '/editor'
-      fullPath: '/editor'
-      preLoaderRoute: typeof EditorRouteImport
+    '/forbidden': {
+      id: '/forbidden'
+      path: '/forbidden'
+      fullPath: '/forbidden'
+      preLoaderRoute: typeof ForbiddenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -144,33 +145,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/editor/$canvasId': {
-      id: '/editor/$canvasId'
-      path: '/$canvasId'
-      fullPath: '/editor/$canvasId'
-      preLoaderRoute: typeof EditorCanvasIdRouteImport
-      parentRoute: typeof EditorRoute
+    '/editor/$documentId': {
+      id: '/editor/$documentId'
+      path: '/editor/$documentId'
+      fullPath: '/editor/$documentId'
+      preLoaderRoute: typeof EditorDocumentIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
-interface EditorRouteChildren {
-  EditorCanvasIdRoute: typeof EditorCanvasIdRoute
-}
-
-const EditorRouteChildren: EditorRouteChildren = {
-  EditorCanvasIdRoute: EditorCanvasIdRoute,
-}
-
-const EditorRouteWithChildren =
-  EditorRoute._addFileChildren(EditorRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
-  EditorRoute: EditorRouteWithChildren,
+  ForbiddenRoute: ForbiddenRoute,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
+  EditorDocumentIdRoute: EditorDocumentIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

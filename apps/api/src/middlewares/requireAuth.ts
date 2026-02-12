@@ -20,7 +20,7 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
         status: 401,
         code: "UNAUTHORIZED",
         message: "Missing Authorization header",
-      })
+      }),
     );
   }
 
@@ -31,7 +31,7 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
         status: 401,
         code: "UNAUTHORIZED",
         message: "Invalid Authorization header format",
-      })
+      }),
     );
   }
 
@@ -44,7 +44,7 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
           status: 401,
           code: "UNAUTHORIZED",
           message: "Invalid token type",
-        })
+        }),
       );
     }
 
@@ -56,7 +56,7 @@ export const requireAuth: RequestHandler = (req, _res, next) => {
         status: 401,
         code: "UNAUTHORIZED",
         message: "Invalid or expired token",
-      })
+      }),
     );
   }
 };

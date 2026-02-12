@@ -1,64 +1,82 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 
-import { Button } from '@/components/ui/button'
-import { useLogin } from '@/features/auth/hooks'
+import { AuthCard } from "@/components/layout/AppShell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useLogin } from "@/features/auth/hooks";
+import { redirectIfAuthenticated } from "@/features/auth/publicRouteProtection";
 
-export const Route = createFileRoute('/login')({
+export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+    };
+  },
+  beforeLoad: async ({ context, location }) => {
+    await redirectIfAuthenticated({
+      queryClient: context.queryClient,
+      location,
+      options: {
+        // Avoid loops by redirecting away from /login for already-authenticated users.
+        to: "/dashboard",
+      },
+    });
+  },
   component: LoginPage,
-})
+});
 
 function LoginPage() {
-  const navigate = useNavigate()
-  const login = useLogin()
+  const navigate = useNavigate();
+  const login = useLogin();
+  const search = Route.useSearch();
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm rounded-2xl border bg-background p-6">
-        <div className="text-lg font-semibold">Login</div>
-        <div className="mt-1 text-sm text-muted-foreground">Sign in to access your dashboard</div>
+    <AuthCard title="Login" subtitle="Sign in to access your dashboard">
+      <div className="flex flex-col gap-3">
+        <Input
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
+        />
+        <Input
+          placeholder="Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
+        />
 
-        <div className="mt-6 flex flex-col gap-3">
-          <input
-            className="h-10 rounded-md border bg-background px-3 text-sm"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            className="h-10 rounded-md border bg-background px-3 text-sm"
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+        <Button
+          disabled={login.isPending}
+          onClick={async () => {
+            await login.mutateAsync({ email, password });
+            const redirectTo =
+              typeof search.redirect === "string" && search.redirect.startsWith("/")
+                ? search.redirect
+                : "/dashboard";
+            navigate({ to: redirectTo });
+          }}
+        >
+          {login.isPending ? "Signing in…" : "Login"}
+        </Button>
 
-          <Button
-            disabled={login.isPending}
-            onClick={async () => {
-              await login.mutateAsync({ email, password })
-              navigate({ to: '/dashboard' })
-            }}
-          >
-            {login.isPending ? 'Signing in…' : 'Login'}
-          </Button>
+        {login.isError && (
+          <div className="text-sm text-red-600">Failed to login</div>
+        )}
 
-          {login.isError && (
-            <div className="text-sm text-red-600">Failed to login</div>
-          )}
-
-          <button
-            className="mt-2 text-sm text-muted-foreground underline"
-            onClick={() => navigate({ to: '/signup' })}
-            type="button"
-          >
-            Create an account
-          </button>
-        </div>
+        <button
+          className="mt-2 text-sm text-muted-foreground underline"
+          onClick={() => navigate({ to: "/signup" })}
+          type="button"
+        >
+          Create an account
+        </button>
       </div>
-    </div>
-  )
+    </AuthCard>
+  );
 }

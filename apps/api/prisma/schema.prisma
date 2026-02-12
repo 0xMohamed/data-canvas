@@ -24,6 +24,8 @@ model Document {
   description String?
   isPublic    Boolean  @default(false)
   publicToken String?  @unique
+  data        Json?    // snapshot of the editor document
+  revision    Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

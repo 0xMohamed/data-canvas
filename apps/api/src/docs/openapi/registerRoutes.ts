@@ -13,6 +13,5 @@ registry.registerComponent("securitySchemes", "RefreshCookie", {
 });
 
 import "./routes/auth.openapi";
-import "./routes/canvas.openapi";
-import "./routes/blocks.openapi";
+import "./routes/documents.openapi";
 import "./routes/public.openapi";

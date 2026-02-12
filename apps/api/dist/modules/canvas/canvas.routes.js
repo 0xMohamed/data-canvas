@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const requireAuth_1 = require("../../middlewares/requireAuth");
+const validate_1 = require("../../middlewares/validate");
+const validateQuery_1 = require("../../middlewares/validateQuery");
+const validateParams_1 = require("../../middlewares/validateParams");
+const canvas_schema_1 = require("./canvas.schema");
+const canvas_controller_1 = require("./canvas.controller");
+const router = (0, express_1.Router)();
+router.get("/", requireAuth_1.requireAuth, (0, validateQuery_1.validateQuery)(canvas_schema_1.listCanvasesQuerySchema), canvas_controller_1.list);
+router.post("/", requireAuth_1.requireAuth, (0, validate_1.validate)(canvas_schema_1.createCanvasSchema), canvas_controller_1.create);
+router.patch("/:id", requireAuth_1.requireAuth, (0, validateParams_1.validateParams)(canvas_schema_1.canvasIdParamsSchema), (0, validate_1.validate)(canvas_schema_1.updateCanvasSchema), canvas_controller_1.update);
+router.delete("/:id", requireAuth_1.requireAuth, (0, validateParams_1.validateParams)(canvas_schema_1.canvasIdParamsSchema), canvas_controller_1.remove);
+exports.default = router;

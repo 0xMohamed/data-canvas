@@ -7,9 +7,9 @@ export const generateOpenApiDocument = () => {
     return generator.generateDocument({
         openapi: "3.0.3",
         info: {
-            title: "Data Canvas API",
+            title: "Documents API",
             version: "1.0.0",
-            description: "Infinite canvas backend (Observable/Figma-like).",
+            description: "Document → Slide → Block backend (snapshot-based persistence).",
         },
     });
 };

@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const requireAuth_1 = require("../../middlewares/requireAuth");
+const validateParams_1 = require("../../middlewares/validateParams");
+const block_schema_1 = require("./block.schema");
+const validate_1 = require("../../middlewares/validate");
+const block_controller_1 = require("../blocks/block.controller");
+const router = (0, express_1.Router)();
+router.patch("/:blockId", requireAuth_1.requireAuth, (0, validateParams_1.validateParams)(block_schema_1.blockIdParamsSchema), (0, validate_1.validate)(block_schema_1.updateBlockSchema), block_controller_1.update);
+router.delete("/:blockId", requireAuth_1.requireAuth, (0, validateParams_1.validateParams)(block_schema_1.blockIdParamsSchema), block_controller_1.remove);
+exports.default = router;
