@@ -8,7 +8,7 @@ export function LayoutRowView(props: {
   onResizeDivider: (
     dividerIndex: number,
     deltaPercent: number,
-  ) => { clamped?: boolean } | boolean | void;
+  ) => { clamped?: boolean; actualDelta?: number } | boolean | void;
   children: React.ReactNode;
 }) {
   const { row } = props;

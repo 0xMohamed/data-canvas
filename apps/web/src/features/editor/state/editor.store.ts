@@ -311,27 +311,31 @@ export const useEditorStore = create<EditorState & EditorActions>(
     resizeLayoutRowDivider: ({ slideId, rowId, dividerIndex, deltaPercent }) => {
       const state = get();
       const slide = getSlide(state.snapshot, slideId);
-      if (!slide) return { clamped: false };
+      if (!slide) return { clamped: false, actualDelta: 0 };
 
       let clamped = false;
+      let actualDelta = 0;
 
       const nextSlide: EditorSlide = {
         ...slide,
         rows: slide.rows.map((r) => {
           if (r.id !== rowId) return normalizeRowWidths(r);
           const normalized = normalizeRowWidths(r);
+          const initialWidths = normalized.widths;
           const res = resizeRowWidthsWithMeta({
-            widths: normalized.widths,
+            widths: initialWidths,
             dividerIndex,
             deltaPercent,
           });
           clamped = res.clamped;
-          return normalizeRowWidths({ ...r, widths: res.widths });
+          const nextWidths = res.widths;
+          actualDelta = nextWidths[dividerIndex] - initialWidths[dividerIndex];
+          return normalizeRowWidths({ ...r, widths: nextWidths });
         }),
       };
 
       set({ snapshot: updateSlide(state.snapshot, slideId, () => nextSlide) });
-      return { clamped };
+      return { clamped, actualDelta };
     },
 
     moveLayoutBlock: ({ slideId, activeBlockId, target }) => {

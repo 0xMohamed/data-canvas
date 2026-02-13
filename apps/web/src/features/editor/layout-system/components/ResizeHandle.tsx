@@ -2,12 +2,13 @@ import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
 export function ResizeHandle(props: {
-  onDeltaPercent: (deltaPercent: number) => { clamped?: boolean } | boolean | void;
+  onDeltaPercent: (deltaPercent: number) => { clamped?: boolean; actualDelta?: number } | boolean | void;
   disabled?: boolean;
 }) {
   const { onDeltaPercent, disabled } = props;
   const ref = useRef<HTMLDivElement | null>(null);
   const originXRef = useRef<number | null>(null);
+  const totalAppliedDeltaRef = useRef<number>(0);
   const lastTotalDeltaPercentRef = useRef<number>(0);
   const containerWidthRef = useRef<number>(1);
   const rafIdRef = useRef<number | null>(null);
@@ -39,6 +40,8 @@ export function ResizeHandle(props: {
       const res = onDeltaPercent(incremental);
       const didClamp =
         typeof res === "boolean" ? res : typeof res === "object" ? Boolean(res?.clamped) : false;
+      const applied = typeof res === "object" ? res?.actualDelta ?? incremental : incremental;
+      totalAppliedDeltaRef.current += applied;
       setClamped(didClamp);
     };
 
@@ -52,6 +55,7 @@ export function ResizeHandle(props: {
       setDragging(false);
       setClamped(false);
       originXRef.current = null;
+      totalAppliedDeltaRef.current = 0;
       lastTotalDeltaPercentRef.current = 0;
       lastMoveEventRef.current = null;
       if (rafIdRef.current !== null) {
@@ -60,12 +64,25 @@ export function ResizeHandle(props: {
       }
     };
 
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (totalAppliedDeltaRef.current !== 0) {
+          onDeltaPercent(-totalAppliedDeltaRef.current);
+        }
+        onUp();
+      }
+    };
+
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp, { once: true });
+    window.addEventListener("keydown", onKeyDown);
 
     return () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("keydown", onKeyDown);
       if (rafIdRef.current !== null) {
         window.cancelAnimationFrame(rafIdRef.current);
         rafIdRef.current = null;
@@ -87,6 +104,7 @@ export function ResizeHandle(props: {
         if (e.button !== 0) return;
 
         originXRef.current = e.clientX;
+        totalAppliedDeltaRef.current = 0;
         lastTotalDeltaPercentRef.current = 0;
         const el = ref.current;
         const rowEl = el?.closest("[data-layout-row]") as HTMLElement | null;
@@ -101,10 +119,11 @@ export function ResizeHandle(props: {
         className={cn(
           "absolute inset-y-0 left-1/2 -translate-x-1/2",
           "w-1 rounded-full transition-[background-color,opacity,transform] duration-150",
-          !clamped && "bg-[color:var(--accent)]/35",
-          !clamped && "group-hover:bg-[color:var(--accent)]/70 group-hover:w-1",
+          !clamped && "bg-white/15",
+          !clamped && "group-hover:bg-[color:var(--accent)]/70",
+          !clamped && "group-hover:shadow-[0_0_18px_rgba(99,102,241,0.45)]",
           !clamped && dragging && "bg-[color:var(--accent)]/90 w-1",
-          clamped && "bg-red-500/80 opacity-100 scale-x-110",
+          clamped && "bg-red-500/80 opacity-100 scale-x-110 shadow-[0_0_18px_rgba(239,68,68,0.35)]",
         )}
       />
     </div>

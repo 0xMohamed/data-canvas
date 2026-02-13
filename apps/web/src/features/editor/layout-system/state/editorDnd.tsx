@@ -6,13 +6,14 @@ import {
   useSensors,
   type DragEndEvent,
   type DragMoveEvent,
+  type DragCancelEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { createContext, useContext, useMemo, useRef, useState } from "react";
 import { useEditorStore } from "../../state/editor.store";
 import { scheduleSaveAfterStructural } from "../../state/autosave";
 import { pickDropTarget, type DropTarget } from "../utils/dnd";
-import { LayoutBlockView } from "../components/LayoutBlockView";
+import { cn } from "@/lib/utils";
 
 const MAX_BLOCKS_PER_ROW = 4;
 
@@ -97,6 +98,12 @@ export function EditorDndProvider(props: {
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   );
 
+  const clearDndState = () => {
+    setActiveDrag(null);
+    setDropTarget(null);
+    setIndicatorRect(null);
+  };
+
   const blocksCountByRow = useMemo(() => {
     return slide?.rows.map((r) => r.blocks.length) ?? [];
   }, [slide?.rows]);
@@ -139,12 +146,6 @@ export function EditorDndProvider(props: {
     });
 
     const rect = computeIndicatorRect(target);
-
-    // Temporary debug logs (requested)
-    // eslint-disable-next-line no-console
-    console.log("[dnd] dropTarget", target);
-    // eslint-disable-next-line no-console
-    console.log("[dnd] indicatorRect", rect);
 
     setDropTarget(target);
     setIndicatorRect(rect);
@@ -221,11 +222,13 @@ export function EditorDndProvider(props: {
     computeDropTargetAtPoint(point);
   };
 
+  const onDragCancel = (_e: DragCancelEvent) => {
+    clearDndState();
+  };
+
   const onDragEnd = (_e: DragEndEvent) => {
     if (!activeDrag || !dropTarget) {
-      setActiveDrag(null);
-      setDropTarget(null);
-      setIndicatorRect(null);
+      clearDndState();
       return;
     }
 
@@ -261,45 +264,73 @@ export function EditorDndProvider(props: {
       scheduleSaveAfterStructural();
     }
 
-    setActiveDrag(null);
-    setDropTarget(null);
-    setIndicatorRect(null);
+    clearDndState();
+  };
+
+  const BlockDragPreview = () => {
+    return (
+      <div
+        className={cn(
+          "rounded-xl border border-white/10",
+          "bg-[color:var(--slide-surface)]",
+          "shadow-[0_1px_0_rgba(255,255,255,0.06),0_18px_44px_rgba(0,0,0,0.55)]",
+        )}
+        style={{ width: 320, maxWidth: "40vw", height: 120 }}
+      />
+    );
+  };
+
+  const RowDragPreview = (p: { widths: number[]; blocksCount: number }) => {
+    const templateColumns = p.widths.length
+      ? p.widths.map((w) => `minmax(0, ${w}%)`).join(" ")
+      : "1fr";
+
+    return (
+      <div
+        className={cn(
+          "rounded-xl border border-white/10 bg-black/40 backdrop-blur-md",
+          "shadow-[0_1px_0_rgba(255,255,255,0.06),0_18px_44px_rgba(0,0,0,0.55)]",
+          "p-3",
+        )}
+        style={{ width: 520, maxWidth: "60vw" }}
+      >
+        <div
+          style={{ display: "grid", gridTemplateColumns: templateColumns, gap: 12 }}
+        >
+          {Array.from({ length: Math.max(1, p.blocksCount) }).map((_, i) => (
+            <div
+              key={`row_preview_${i}`}
+              className={cn(
+                "min-w-0 rounded-xl border border-white/10",
+                "bg-[color:var(--slide-surface)]",
+              )}
+              style={{ height: 96 }}
+            />
+          ))}
+        </div>
+      </div>
+    );
   };
 
   const overlay = (() => {
     if (!activeDrag) return null;
 
     if (activeDrag.kind === "block") {
-      const block = slide?.rows
-        .flatMap((r) => r.blocks)
-        .find((b) => b.id === activeDrag.blockId);
-      if (!block) return null;
-
-      return (
-        <div style={{ width: 320, maxWidth: "40vw" }}>
-          <LayoutBlockView
-            block={block}
-            selected={false}
-            onSelect={() => undefined}
-            onChange={() => undefined}
-          />
-        </div>
-      );
+      return <BlockDragPreview />;
     }
 
     if (activeDrag.kind === "row") {
+      const row = slide?.rows.find((r) => r.id === activeDrag.rowId);
+      if (!row) return null;
       return (
-        <div className="rounded-xl border border-white/10 bg-black/50 backdrop-blur-md px-3 py-2 text-sm text-white shadow-xl">
-          Row
-        </div>
+        <RowDragPreview
+          widths={row.widths.length ? row.widths : row.blocks.map(() => 100 / Math.max(1, row.blocks.length))}
+          blocksCount={row.blocks.length}
+        />
       );
     }
 
-    return (
-      <div className="rounded-xl border border-white/10 bg-black/50 backdrop-blur-md px-3 py-2 text-sm text-white shadow-xl">
-        {activeDrag.kind === "toolbar" ? activeDrag.blockType : null}
-      </div>
-    );
+    return <BlockDragPreview />;
   })();
 
   const value: DndApi = {
@@ -321,6 +352,7 @@ export function EditorDndProvider(props: {
         onDragStart={onDragStart}
         onDragMove={onDragMove}
         onDragEnd={onDragEnd}
+        onDragCancel={onDragCancel}
       >
         {props.children}
         <DragOverlay dropAnimation={null}>{overlay}</DragOverlay>

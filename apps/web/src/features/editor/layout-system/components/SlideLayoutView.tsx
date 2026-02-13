@@ -27,10 +27,12 @@ function RowDraggable(props: { rowId: string; children: React.ReactNode }) {
         type="button"
         ref={setActivatorNodeRef}
         className={cn(
+          "group",
           "absolute -left-1.5 top-1/2 -translate-x-full -translate-y-1/2",
           "w-6 rounded-lg py-2",
           "border border-white/10 bg-black/35 backdrop-blur",
-          "hover:bg-black/45",
+          "shadow-[0_1px_0_rgba(255,255,255,0.06),0_10px_22px_rgba(0,0,0,0.35)]",
+          "hover:bg-black/45 hover:shadow-[0_1px_0_rgba(255,255,255,0.08),0_14px_30px_rgba(0,0,0,0.45),0_0_18px_rgba(99,102,241,0.25)]",
           "cursor-grab active:cursor-grabbing",
           "flex items-center justify-center",
         )}
@@ -40,9 +42,9 @@ function RowDraggable(props: { rowId: string; children: React.ReactNode }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center flex-col gap-1">
-          <div className="h-1 w-1 rounded-full bg-white/55" />
-          <div className="h-1 w-1 rounded-full bg-white/55" />
-          <div className="h-1 w-1 rounded-full bg-white/55" />
+          <div className="h-1 w-1 rounded-full bg-white/45 group-hover:bg-[color:var(--accent)]" />
+          <div className="h-1 w-1 rounded-full bg-white/45 group-hover:bg-[color:var(--accent)]" />
+          <div className="h-1 w-1 rounded-full bg-white/45 group-hover:bg-[color:var(--accent)]" />
         </div>
       </button>
       {props.children}
@@ -81,10 +83,12 @@ function BlockDraggable(props: { blockId: string; children: React.ReactNode }) {
         type="button"
         ref={setActivatorNodeRef}
         className={cn(
+          "group",
           "absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1/2",
           "h-6 px-2 rounded-lg",
           "border border-white/10 bg-black/40 backdrop-blur",
-          "hover:bg-black/50",
+          "shadow-[0_1px_0_rgba(255,255,255,0.06),0_12px_24px_rgba(0,0,0,0.35)]",
+          "hover:bg-black/50 hover:shadow-[0_1px_0_rgba(255,255,255,0.08),0_16px_32px_rgba(0,0,0,0.45),0_0_18px_rgba(99,102,241,0.25)]",
           "cursor-grab active:cursor-grabbing",
           "flex items-center justify-center",
         )}
@@ -94,9 +98,9 @@ function BlockDraggable(props: { blockId: string; children: React.ReactNode }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-1">
-          <div className="h-1 w-1 rounded-full bg-white/60" />
-          <div className="h-1 w-1 rounded-full bg-white/60" />
-          <div className="h-1 w-1 rounded-full bg-white/60" />
+          <div className="h-1 w-1 rounded-full bg-white/45 group-hover:bg-[color:var(--accent)]" />
+          <div className="h-1 w-1 rounded-full bg-white/45 group-hover:bg-[color:var(--accent)]" />
+          <div className="h-1 w-1 rounded-full bg-white/45 group-hover:bg-[color:var(--accent)]" />
         </div>
       </button>
       {props.children}
@@ -122,7 +126,7 @@ export function SlideLayoutView(props: { slideId: string }) {
         rowId: string;
         dividerIndex: number;
         deltaPercent: number;
-      }) => { clamped?: boolean } | boolean | void)
+      }) => { clamped?: boolean; actualDelta?: number } | boolean | void)
     | undefined;
 
   const pushHistoryCheckpoint = useEditorStore((s) => s.pushHistoryCheckpoint);
