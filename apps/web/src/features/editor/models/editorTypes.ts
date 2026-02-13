@@ -6,15 +6,20 @@ export type EditorBlock = {
   id: string;
   type: string;
   content: unknown;
-  x: number;
-  y: number;
+};
+
+export type EditorRow = {
+  id: string;
+  blocks: EditorBlock[];
+  /** Percentages summing to 100. Same length as `blocks`. */
+  widths: number[];
 };
 
 export type EditorSlide = {
   id: string;
   title: string;
   themeId: string;
-  blocks: EditorBlock[];
+  rows: EditorRow[];
 };
 
 export type EditorSnapshot = {
@@ -34,7 +39,13 @@ export const DEFAULT_SNAPSHOT: EditorSnapshot = {
       id: "slide_1",
       title: "Slide 1",
       themeId: "dark-editorial",
-      blocks: [],
+      rows: [
+        {
+          id: "row_1",
+          blocks: [{ id: "b_1", type: "text", content: { text: "" } }],
+          widths: [100],
+        },
+      ],
     },
   ],
 };
@@ -46,7 +57,13 @@ export function emptySnapshot(): EditorSnapshot {
         id: `slide_${nanoid(8)}`,
         title: "Slide 1",
         themeId: "dark-editorial",
-        blocks: [],
+        rows: [
+          {
+            id: `row_${nanoid(8)}`,
+            blocks: [{ id: `b_${nanoid(8)}`, type: "text", content: { text: "" } }],
+            widths: [100],
+          },
+        ],
       },
     ],
   };

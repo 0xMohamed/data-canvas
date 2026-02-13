@@ -1,7 +1,7 @@
 import { useEditorStore } from "../state/editor.store";
 import { getSlideTheme } from "../theme";
-import { BlockView } from "./BlockView";
 import { cn } from "@/lib/utils";
+import { SlideLayoutView } from "../layout-system/components/SlideLayoutView";
 
 export function SlideView() {
   const snapshot = useEditorStore((s) => s.snapshot);
@@ -47,11 +47,13 @@ export function SlideView() {
           boxSizing: `border-box`,
         }}
       >
-        <div className="absolute inset-0 p-6">
+        <div className="absolute inset-0 p-10">
           <div className="relative w-full h-full">
-            {slide.blocks.map((block) => (
-              <BlockView key={block.id} block={block} slideId={slide.id} />
-            ))}
+            <div
+              className={cn("w-full h-full", "flex flex-col justify-center")}
+            >
+              <SlideLayoutView slideId={slide.id} />
+            </div>
           </div>
         </div>
       </div>

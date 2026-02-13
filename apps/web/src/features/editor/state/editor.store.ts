@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type {
   EditorBlock,
+  EditorRow,
   EditorSlide,
   EditorSnapshot,
   DocumentMeta,
@@ -12,8 +13,10 @@ import {
   undo as historyUndo,
   redo as historyRedo,
 } from "./undoRedo";
-import { generateBlockId, generateSlideId } from "../utils/ids";
+import { generateBlockId, generateRowId, generateSlideId } from "../utils/ids";
 import { arrayMove } from "@dnd-kit/sortable";
+import { resizeRowWidthsWithMeta } from "../layout-system/utils/resize";
+import type { DropTarget } from "../layout-system/utils/dnd";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -50,14 +53,38 @@ type EditorActions = {
   selectBlock: (blockId: string | null) => void;
   setDragging: (value: boolean) => void;
   setSidebarCollapse: (isCollapsed: boolean) => void;
-  moveBlock: (blockId: string, delta: { x: number; y: number }) => void;
-  commitMove: (blockId: string, x: number, y: number) => void;
   addBlock: (
     slideId: string,
     block: Omit<EditorBlock, "id"> & { id?: string },
   ) => void;
   removeBlock: (blockId: string) => void;
   updateBlockContent: (blockId: string, content: unknown) => void;
+  updateLayoutBlockContent: (params: {
+    slideId: string;
+    blockId: string;
+    content: unknown;
+  }) => void;
+  resizeLayoutRowDivider: (params: {
+    slideId: string;
+    rowId: string;
+    dividerIndex: number;
+    deltaPercent: number;
+  }) => void;
+  moveLayoutBlock: (params: {
+    slideId: string;
+    activeBlockId: string;
+    target: DropTarget;
+  }) => void;
+  moveLayoutRow: (params: {
+    slideId: string;
+    activeRowId: string;
+    target: DropTarget;
+  }) => void;
+  insertLayoutBlock: (params: {
+    slideId: string;
+    block: Omit<EditorBlock, "id">;
+    target: DropTarget;
+  }) => void;
   setSlideTitle: (slideId: string, title: string) => void;
   setCurrentSlideId: (slideId: string) => void;
   addSlide: (themeId?: string) => void;
@@ -91,15 +118,31 @@ function updateSlide(
   };
 }
 
-function updateBlockInSlide(
-  slide: EditorSlide,
+function updateBlockInRows(
+  rows: EditorRow[],
   blockId: string,
   updater: (b: EditorBlock) => EditorBlock,
-): EditorSlide {
-  return {
-    ...slide,
-    blocks: slide.blocks.map((b) => (b.id === blockId ? updater(b) : b)),
-  };
+): EditorRow[] {
+  return rows.map((r) => ({
+    ...r,
+    blocks: r.blocks.map((b) => (b.id === blockId ? updater(b) : b)),
+  }));
+}
+
+function findBlockLocation(slide: EditorSlide, blockId: string): { rowIndex: number; blockIndex: number } | null {
+  for (let r = 0; r < slide.rows.length; r += 1) {
+    const idx = slide.rows[r].blocks.findIndex((b) => b.id === blockId);
+    if (idx !== -1) return { rowIndex: r, blockIndex: idx };
+  }
+  return null;
+}
+
+function normalizeRowWidths(row: EditorRow): EditorRow {
+  if (row.blocks.length === 0) return { ...row, widths: [] };
+  if (row.widths.length === row.blocks.length) return row;
+  const even = 100 / row.blocks.length;
+  const widths = row.blocks.map((_, i) => (i === row.blocks.length - 1 ? 100 - even * (row.blocks.length - 1) : even));
+  return { ...row, widths };
 }
 
 const initialState: EditorState = {
@@ -140,6 +183,33 @@ export const useEditorStore = create<EditorState & EditorActions>(
       });
     },
 
+    moveLayoutRow: ({ slideId, activeRowId, target }) => {
+      set((state) => {
+        const slide = getSlide(state.snapshot, slideId);
+        if (!slide) return state;
+
+        if (target.kind !== "row-reorder") return state;
+
+        const fromIndex = slide.rows.findIndex((r) => r.id === activeRowId);
+        if (fromIndex === -1) return state;
+
+        const activeRow = slide.rows[fromIndex];
+        const remaining = slide.rows.filter((r) => r.id !== activeRowId);
+
+        const rawInsertAt = target.edge === "before" ? target.rowIndex : target.rowIndex + 1;
+        const insertAt = Math.min(Math.max(0, rawInsertAt), remaining.length);
+
+        const nextRows = [
+          ...remaining.slice(0, insertAt),
+          activeRow,
+          ...remaining.slice(insertAt),
+        ].map(normalizeRowWidths);
+
+        const nextSlide: EditorSlide = { ...slide, rows: nextRows };
+        return { snapshot: updateSlide(state.snapshot, slideId, () => nextSlide) };
+      });
+    },
+
     selectBlock: (blockId) => set({ selectedBlockId: blockId }),
 
     setDragging: (isDragging) => set({ isDragging }),
@@ -147,55 +217,39 @@ export const useEditorStore = create<EditorState & EditorActions>(
     setSidebarCollapse: (isCollapsed) =>
       set({ isSidebarCollapsed: isCollapsed }),
 
-    moveBlock: (blockId, delta) => {
-      const { snapshot, currentSlideId } = get();
-      const slide = currentSlideId
-        ? getSlide(snapshot, currentSlideId)
-        : undefined;
-      if (!slide) return;
-      const block = slide.blocks.find((b) => b.id === blockId);
-      if (!block) return;
-      const nextSlide = updateBlockInSlide(slide, blockId, (b) => ({
-        ...b,
-        x: b.x + delta.x,
-        y: b.y + delta.y,
-      }));
-      set({
-        snapshot: updateSlide(get().snapshot, currentSlideId!, () => nextSlide),
-      });
-    },
-
-    commitMove: (blockId, x, y) => {
-      const { snapshot, currentSlideId } = get();
-      const slide = currentSlideId
-        ? getSlide(snapshot, currentSlideId)
-        : undefined;
-      if (!slide) return;
-      const nextSlide = updateBlockInSlide(slide, blockId, (b) => ({
-        ...b,
-        x,
-        y,
-      }));
-      set({
-        snapshot: updateSlide(get().snapshot, currentSlideId!, () => nextSlide),
-      });
-    },
-
     addBlock: (slideId, block) => {
       const id = block.id ?? generateBlockId();
       const newBlock: EditorBlock = {
         id,
         type: block.type,
         content: block.content ?? {},
-        x: block.x ?? 0,
-        y: block.y ?? 0,
       };
       set((state) => {
         const slide = getSlide(state.snapshot, slideId);
         if (!slide) return state;
+
+        const rows = slide.rows.length ? slide.rows.map(normalizeRowWidths) : [];
+        const lastRow = rows[rows.length - 1];
+
+        let nextRows: EditorRow[];
+        if (!lastRow) {
+          const row: EditorRow = { id: generateRowId(), blocks: [newBlock], widths: [100] };
+          nextRows = [row];
+        } else if (lastRow.blocks.length < 4) {
+          const nextLast: EditorRow = normalizeRowWidths({
+            ...lastRow,
+            blocks: [...lastRow.blocks, newBlock],
+            widths: [...lastRow.widths, 0],
+          });
+          nextRows = [...rows.slice(0, -1), normalizeRowWidths(nextLast)];
+        } else {
+          const row: EditorRow = { id: generateRowId(), blocks: [newBlock], widths: [100] };
+          nextRows = [...rows, row];
+        }
+
         const nextSnapshot = updateSlide(state.snapshot, slideId, (s) => ({
           ...s,
-          blocks: [...s.blocks, newBlock],
+          rows: nextRows.map(normalizeRowWidths),
         }));
         return { snapshot: nextSnapshot };
       });
@@ -205,11 +259,14 @@ export const useEditorStore = create<EditorState & EditorActions>(
       set((state) => {
         let nextSnapshot = state.snapshot;
         for (const slide of state.snapshot.slides) {
-          const found = slide.blocks.some((b) => b.id === blockId);
+          const found = slide.rows.some((r) => r.blocks.some((b) => b.id === blockId));
           if (found) {
             nextSnapshot = updateSlide(state.snapshot, slide.id, (s) => ({
               ...s,
-              blocks: s.blocks.filter((b) => b.id !== blockId),
+              rows: s.rows
+                .map((r) => ({ ...r, blocks: r.blocks.filter((b) => b.id !== blockId) }))
+                .filter((r) => r.blocks.length > 0)
+                .map(normalizeRowWidths),
             }));
             break;
           }
@@ -228,12 +285,137 @@ export const useEditorStore = create<EditorState & EditorActions>(
         ? getSlide(snapshot, currentSlideId)
         : undefined;
       if (!slide) return;
-      const nextSlide = updateBlockInSlide(slide, blockId, (b) => ({
-        ...b,
-        content,
-      }));
+      const nextSlide: EditorSlide = {
+        ...slide,
+        rows: updateBlockInRows(slide.rows, blockId, (b) => ({ ...b, content })),
+      };
       set({
         snapshot: updateSlide(get().snapshot, currentSlideId!, () => nextSlide),
+      });
+    },
+
+    updateLayoutBlockContent: ({ slideId, blockId, content }) => {
+      set((state) => {
+        const slide = getSlide(state.snapshot, slideId);
+        if (!slide) return state;
+
+        const nextSlide: EditorSlide = {
+          ...slide,
+          rows: updateBlockInRows(slide.rows, blockId, (b) => ({ ...b, content })),
+        };
+
+        return { snapshot: updateSlide(state.snapshot, slideId, () => nextSlide) };
+      });
+    },
+
+    resizeLayoutRowDivider: ({ slideId, rowId, dividerIndex, deltaPercent }) => {
+      const state = get();
+      const slide = getSlide(state.snapshot, slideId);
+      if (!slide) return { clamped: false };
+
+      let clamped = false;
+
+      const nextSlide: EditorSlide = {
+        ...slide,
+        rows: slide.rows.map((r) => {
+          if (r.id !== rowId) return normalizeRowWidths(r);
+          const normalized = normalizeRowWidths(r);
+          const res = resizeRowWidthsWithMeta({
+            widths: normalized.widths,
+            dividerIndex,
+            deltaPercent,
+          });
+          clamped = res.clamped;
+          return normalizeRowWidths({ ...r, widths: res.widths });
+        }),
+      };
+
+      set({ snapshot: updateSlide(state.snapshot, slideId, () => nextSlide) });
+      return { clamped };
+    },
+
+    moveLayoutBlock: ({ slideId, activeBlockId, target }) => {
+      set((state) => {
+        const slide = getSlide(state.snapshot, slideId);
+        if (!slide) return state;
+
+        if (target.kind === "row-reorder") return state;
+
+        const loc = findBlockLocation(slide, activeBlockId);
+        if (!loc) return state;
+
+        const activeRow = slide.rows[loc.rowIndex];
+        const activeBlock = activeRow.blocks[loc.blockIndex];
+
+        // Remove from source.
+        let rows = slide.rows.map((r, ri) => {
+          if (ri !== loc.rowIndex) return normalizeRowWidths(r);
+          const blocks = r.blocks.filter((b) => b.id !== activeBlockId);
+          return normalizeRowWidths({ ...r, blocks });
+        }).filter((r) => r.blocks.length > 0);
+
+        if (target.kind === 'new-row') {
+          const insertAt = target.edge === 'before' ? target.rowIndex : target.rowIndex + 1;
+          const row: EditorRow = { id: generateRowId(), blocks: [activeBlock], widths: [100] };
+          rows = [...rows.slice(0, insertAt), row, ...rows.slice(insertAt)].map(normalizeRowWidths);
+        } else {
+          const rowIndex = Math.min(Math.max(0, target.rowIndex), rows.length - 1);
+          const row = normalizeRowWidths(rows[rowIndex]);
+
+          if (row.blocks.length >= 4) {
+            const insertAt = rowIndex + 1;
+            const newRow: EditorRow = { id: generateRowId(), blocks: [activeBlock], widths: [100] };
+            rows = [...rows.slice(0, insertAt), newRow, ...rows.slice(insertAt)].map(normalizeRowWidths);
+          } else {
+            const insertionIndex = target.edge === 'before' ? target.blockIndex : target.blockIndex + 1;
+            const blocks = [...row.blocks.slice(0, insertionIndex), activeBlock, ...row.blocks.slice(insertionIndex)];
+            const nextRow = normalizeRowWidths({ ...row, blocks, widths: row.widths });
+            rows = rows.map((r, i) => (i === rowIndex ? nextRow : normalizeRowWidths(r)));
+          }
+        }
+
+        const nextSlide: EditorSlide = { ...slide, rows: rows.map(normalizeRowWidths) };
+        return { snapshot: updateSlide(state.snapshot, slideId, () => nextSlide) };
+      });
+    },
+
+    insertLayoutBlock: ({ slideId, block, target }) => {
+      set((state) => {
+        const slide = getSlide(state.snapshot, slideId);
+        if (!slide) return state;
+
+        if (target.kind === "row-reorder") return state;
+
+        const newBlock: EditorBlock = {
+          id: generateBlockId(),
+          type: block.type,
+          content: block.content ?? {},
+        };
+
+        let rows = slide.rows.map(normalizeRowWidths);
+
+        if (target.kind === 'new-row') {
+          const insertAt = target.edge === 'before' ? target.rowIndex : target.rowIndex + 1;
+          const row: EditorRow = { id: generateRowId(), blocks: [newBlock], widths: [100] };
+          rows = [...rows.slice(0, insertAt), row, ...rows.slice(insertAt)].map(normalizeRowWidths);
+        } else {
+          const rowIndex = Math.min(Math.max(0, target.rowIndex), rows.length - 1);
+          const row = normalizeRowWidths(rows[rowIndex]);
+
+          if (row.blocks.length >= 4) {
+            const insertAt = rowIndex + 1;
+            const newRow: EditorRow = { id: generateRowId(), blocks: [newBlock], widths: [100] };
+            rows = [...rows.slice(0, insertAt), newRow, ...rows.slice(insertAt)].map(normalizeRowWidths);
+          } else {
+            const insertionIndex = target.edge === 'before' ? target.blockIndex : target.blockIndex + 1;
+            const blocks = [...row.blocks.slice(0, insertionIndex), newBlock, ...row.blocks.slice(insertionIndex)];
+            const nextRow = normalizeRowWidths({ ...row, blocks, widths: row.widths });
+            rows = rows.map((r, i) => (i === rowIndex ? nextRow : normalizeRowWidths(r)));
+          }
+        }
+
+        const nextSlide: EditorSlide = { ...slide, rows: rows.map(normalizeRowWidths) };
+        return { snapshot: updateSlide(state.snapshot, slideId, () => nextSlide) };
       });
     },
 
@@ -262,7 +444,13 @@ export const useEditorStore = create<EditorState & EditorActions>(
               id,
               title: `Slide ${state.snapshot.slides.length + 1}`,
               themeId: themeId ?? activeSlide?.themeId ?? "dark-editorial",
-              blocks: [],
+              rows: [
+                {
+                  id: generateRowId(),
+                  blocks: [{ id: generateBlockId(), type: "text", content: { text: "" } }],
+                  widths: [100],
+                },
+              ],
             },
           ],
         },

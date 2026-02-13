@@ -15,7 +15,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { forwardRef, type ReactNode } from "react";
+import { forwardRef, type ReactNode, useEffect, useMemo, useState } from "react";
+import { ToolbarDraggable } from "../layout-system/components/ToolbarDraggable";
+import { useEditorDnd } from "../layout-system/state/editorDnd";
 
 type RailIconButtonProps = React.ComponentPropsWithoutRef<typeof Button> & {
   label: string;
@@ -56,21 +58,16 @@ function DraggableCard({
   icon,
   title,
   description,
-  draggableId,
   onClick,
 }: {
   icon: React.ReactNode;
   title: string;
   description?: string;
-  draggableId: string;
   onClick?: () => void;
 }) {
   return (
     <button
       type="button"
-      draggable
-      data-dnd-kind="palette-item"
-      data-draggable-id={draggableId}
       onClick={onClick}
       className={cn(
         "w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left",
@@ -79,7 +76,7 @@ function DraggableCard({
         "bg-white/[0.03] hover:bg-white/5",
         "text-[color:var(--text)]",
       )}
-      title="Drag me into the slide (dummy)"
+      title="Drag me into the slide"
     >
       <div className="mt-0.5 text-[color:var(--text)]/70">{icon}</div>
       <div className="min-w-0">
@@ -134,6 +131,24 @@ export default function CanvasToolbar({
   onThemeChange: (id: SlideTheme["id"]) => void;
   onAddBlock: (type: "text" | "image" | "chart") => void;
 }) {
+  const { setCloseToolbars } = useEditorDnd();
+
+  const [open, setOpen] = useState<
+    | null
+    | "blocks"
+    | "images"
+    | "charts"
+    | "tables"
+    | "layouts"
+    | "theme"
+  >(null);
+
+  const closeAll = useMemo(() => () => setOpen(null), []);
+
+  useEffect(() => {
+    setCloseToolbars(closeAll);
+  }, [closeAll, setCloseToolbars]);
+
   return (
     <div className="fixed right-3 top-1/2 -translate-y-1/2 z-50">
       {/* ✅ مهم: overflow-visible عشان الـ popover يطلع برا */}
@@ -149,7 +164,7 @@ export default function CanvasToolbar({
       >
         <div className="flex flex-col items-center gap-2">
           {/* BLOCKS */}
-          <Popover>
+          <Popover open={open === "blocks"} onOpenChange={(v) => setOpen(v ? "blocks" : null)}>
             <PopoverTrigger asChild>
               <RailIconButton
                 label="Blocks"
@@ -166,33 +181,38 @@ export default function CanvasToolbar({
                 title="Blocks"
                 subtitle="Dummy items — later these will be draggable into the slide."
               >
-                <DraggableCard
-                  draggableId="block:text:paragraph"
-                  icon={<Type className="h-4 w-4" />}
-                  title="Text — Paragraph"
-                  description="Basic text block."
-                  onClick={() => onAddBlock("text")}
-                />
-                <DraggableCard
-                  draggableId="block:image:basic"
-                  icon={<Image className="h-4 w-4" />}
-                  title="Image — Basic"
-                  description="Single image block."
-                  onClick={() => onAddBlock("image")}
-                />
-                <DraggableCard
-                  draggableId="block:chart:basic"
-                  icon={<ChartSpline className="h-4 w-4" />}
-                  title="Chart — Basic"
-                  description="Placeholder chart block."
-                  onClick={() => onAddBlock("chart")}
-                />
+                <ToolbarDraggable id="toolbar:text" blockType="text">
+                  <DraggableCard
+                    icon={<Type className="h-4 w-4" />}
+                    title="Text — Paragraph"
+                    description="Basic text block."
+                    onClick={() => onAddBlock("text")}
+                  />
+                </ToolbarDraggable>
+
+                <ToolbarDraggable id="toolbar:image" blockType="image">
+                  <DraggableCard
+                    icon={<Image className="h-4 w-4" />}
+                    title="Image — Basic"
+                    description="Single image block."
+                    onClick={() => onAddBlock("image")}
+                  />
+                </ToolbarDraggable>
+
+                <ToolbarDraggable id="toolbar:chart" blockType="chart">
+                  <DraggableCard
+                    icon={<ChartSpline className="h-4 w-4" />}
+                    title="Chart — Basic"
+                    description="Placeholder chart block."
+                    onClick={() => onAddBlock("chart")}
+                  />
+                </ToolbarDraggable>
               </MenuContent>
             </PopoverContent>
           </Popover>
 
           {/* IMAGES */}
-          <Popover>
+          <Popover open={open === "images"} onOpenChange={(v) => setOpen(v ? "images" : null)}>
             <PopoverTrigger asChild>
               <RailIconButton
                 label="Images"
@@ -207,19 +227,16 @@ export default function CanvasToolbar({
             >
               <MenuContent title="Images" subtitle="Dummy assets (drag later).">
                 <DraggableCard
-                  draggableId="asset:image:hero"
                   icon={<Image className="h-4 w-4" />}
                   title="Hero Image"
                   description="1920×1080 placeholder"
                 />
                 <DraggableCard
-                  draggableId="asset:image:avatar"
                   icon={<Image className="h-4 w-4" />}
                   title="Avatar"
                   description="Square placeholder"
                 />
                 <DraggableCard
-                  draggableId="asset:image:logo"
                   icon={<Image className="h-4 w-4" />}
                   title="Logo"
                   description="Transparent placeholder"
@@ -229,7 +246,7 @@ export default function CanvasToolbar({
           </Popover>
 
           {/* CHARTS */}
-          <Popover>
+          <Popover open={open === "charts"} onOpenChange={(v) => setOpen(v ? "charts" : null)}>
             <PopoverTrigger asChild>
               <RailIconButton
                 label="Charts"
@@ -247,13 +264,11 @@ export default function CanvasToolbar({
                 subtitle="Dummy presets (drag later)."
               >
                 <DraggableCard
-                  draggableId="preset:chart:line"
                   icon={<ChartSpline className="h-4 w-4" />}
                   title="Line chart"
                   description="Trends over time."
                 />
                 <DraggableCard
-                  draggableId="preset:chart:bar"
                   icon={<ChartSpline className="h-4 w-4" />}
                   title="Bar chart"
                   description="Compare categories."
@@ -263,7 +278,7 @@ export default function CanvasToolbar({
           </Popover>
 
           {/* TABLES */}
-          <Popover>
+          <Popover open={open === "tables"} onOpenChange={(v) => setOpen(v ? "tables" : null)}>
             <PopoverTrigger asChild>
               <RailIconButton
                 label="Tables"
@@ -281,13 +296,11 @@ export default function CanvasToolbar({
                 subtitle="Dummy templates (drag later)."
               >
                 <DraggableCard
-                  draggableId="preset:table:simple"
                   icon={<Table className="h-4 w-4" />}
                   title="Simple table"
                   description="3×5 template."
                 />
                 <DraggableCard
-                  draggableId="preset:table:pricing"
                   icon={<Table className="h-4 w-4" />}
                   title="Pricing table"
                   description="3-tier layout."
@@ -297,7 +310,7 @@ export default function CanvasToolbar({
           </Popover>
 
           {/* LAYOUTS */}
-          <Popover>
+          <Popover open={open === "layouts"} onOpenChange={(v) => setOpen(v ? "layouts" : null)}>
             <PopoverTrigger asChild>
               <RailIconButton
                 label="Layouts"
@@ -315,13 +328,11 @@ export default function CanvasToolbar({
                 subtitle="Dummy sections (drag later)."
               >
                 <DraggableCard
-                  draggableId="layout:hero"
                   icon={<LayoutGrid className="h-4 w-4" />}
                   title="Hero section"
                   description="Title + subtitle + CTA."
                 />
                 <DraggableCard
-                  draggableId="layout:features"
                   icon={<LayoutGrid className="h-4 w-4" />}
                   title="Features grid"
                   description="3–6 cards."
@@ -331,7 +342,7 @@ export default function CanvasToolbar({
           </Popover>
 
           {/* THEME */}
-          <Popover>
+          <Popover open={open === "theme"} onOpenChange={(v) => setOpen(v ? "theme" : null)}>
             <PopoverTrigger asChild>
               <RailIconButton
                 label="Theme"
