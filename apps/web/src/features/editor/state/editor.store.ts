@@ -228,30 +228,73 @@ export const useEditorStore = create<EditorState & EditorActions>(
         const slide = getSlide(state.snapshot, slideId);
         if (!slide) return state;
 
-        const rows = slide.rows.length ? slide.rows.map(normalizeRowWidths) : [];
-        const lastRow = rows[rows.length - 1];
+        const selectedBlockId = state.selectedBlockId;
+        let nextRows: EditorRow[] = slide.rows.map(normalizeRowWidths);
+        const loc = selectedBlockId ? findBlockLocation(slide, selectedBlockId) : null;
 
-        let nextRows: EditorRow[];
-        if (!lastRow) {
-          const row: EditorRow = { id: generateRowId(), blocks: [newBlock], widths: [100] };
-          nextRows = [row];
-        } else if (lastRow.blocks.length < 4) {
-          const nextLast: EditorRow = normalizeRowWidths({
-            ...lastRow,
-            blocks: [...lastRow.blocks, newBlock],
-            widths: [...lastRow.widths, 0],
-          });
-          nextRows = [...rows.slice(0, -1), normalizeRowWidths(nextLast)];
+        if (loc) {
+          // Option A: insert into the currently selected row/after selected block
+          const rowIndex = loc.rowIndex;
+          const row = nextRows[rowIndex];
+
+          if (row.blocks.length < 4) {
+            const insertionIndex = loc.blockIndex + 1;
+            const blocks = [
+              ...row.blocks.slice(0, insertionIndex),
+              newBlock,
+              ...row.blocks.slice(insertionIndex),
+            ];
+            nextRows[rowIndex] = normalizeRowWidths({ ...row, blocks });
+          } else {
+            // Row is full, insert new row after
+            const newRow: EditorRow = {
+              id: generateRowId(),
+              blocks: [newBlock],
+              widths: [100],
+            };
+            nextRows = [
+              ...nextRows.slice(0, rowIndex + 1),
+              newRow,
+              ...nextRows.slice(rowIndex + 1),
+            ];
+          }
         } else {
-          const row: EditorRow = { id: generateRowId(), blocks: [newBlock], widths: [100] };
-          nextRows = [...rows, row];
+          // Option B: if no selection → insert into the last row
+          const lastRow = nextRows[nextRows.length - 1];
+
+          if (!lastRow) {
+            // Option C: if no rows → create a new row and insert
+            const row: EditorRow = {
+              id: generateRowId(),
+              blocks: [newBlock],
+              widths: [100],
+            };
+            nextRows = [row];
+          } else if (lastRow.blocks.length < 4) {
+            const nextLast: EditorRow = normalizeRowWidths({
+              ...lastRow,
+              blocks: [...lastRow.blocks, newBlock],
+            });
+            nextRows = [...nextRows.slice(0, -1), nextLast];
+          } else {
+            const row: EditorRow = {
+              id: generateRowId(),
+              blocks: [newBlock],
+              widths: [100],
+            };
+            nextRows = [...nextRows, row];
+          }
         }
 
         const nextSnapshot = updateSlide(state.snapshot, slideId, (s) => ({
           ...s,
           rows: nextRows.map(normalizeRowWidths),
         }));
-        return { snapshot: nextSnapshot };
+
+        return {
+          snapshot: nextSnapshot,
+          selectedBlockId: id, // Auto-select new block
+        };
       });
     },
 

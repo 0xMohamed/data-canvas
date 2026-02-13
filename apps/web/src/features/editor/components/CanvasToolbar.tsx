@@ -179,7 +179,7 @@ export default function CanvasToolbar({
             >
               <MenuContent
                 title="Blocks"
-                subtitle="Dummy items — later these will be draggable into the slide."
+                subtitle="Drag or click to add"
               >
                 <ToolbarDraggable id="toolbar:text" blockType="text">
                   <DraggableCard
@@ -225,7 +225,7 @@ export default function CanvasToolbar({
               sideOffset={12}
               className={popoverSurfaceClass}
             >
-              <MenuContent title="Images" subtitle="Dummy assets (drag later).">
+              <MenuContent title="Images" subtitle="Drag or click to add">
                 <DraggableCard
                   icon={<Image className="h-4 w-4" />}
                   title="Hero Image"
@@ -261,7 +261,7 @@ export default function CanvasToolbar({
             >
               <MenuContent
                 title="Charts"
-                subtitle="Dummy presets (drag later)."
+                subtitle="Drag or click to add"
               >
                 <DraggableCard
                   icon={<ChartSpline className="h-4 w-4" />}
@@ -293,7 +293,7 @@ export default function CanvasToolbar({
             >
               <MenuContent
                 title="Tables"
-                subtitle="Dummy templates (drag later)."
+                subtitle="Drag or click to add"
               >
                 <DraggableCard
                   icon={<Table className="h-4 w-4" />}

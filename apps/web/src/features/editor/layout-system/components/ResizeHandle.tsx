@@ -119,9 +119,9 @@ export function ResizeHandle(props: {
         className={cn(
           "absolute inset-y-0 left-1/2 -translate-x-1/2",
           "w-1 rounded-full transition-[background-color,opacity,transform,shadow] duration-150",
-          "opacity-15 group-hover/row:opacity-100",
+          "opacity-0 group-hover/row:opacity-100",
           dragging && "opacity-100",
-          !clamped && "bg-white/90",
+          !clamped && "bg-white/20",
           !clamped && "group-hover/handle:bg-[color:var(--accent)]/70",
           !clamped && "group-hover/handle:shadow-[0_0_18px_rgba(99,102,241,0.45)]",
           !clamped && dragging && "bg-[color:var(--accent)]/90 w-1",
