@@ -194,9 +194,11 @@ export function EditorDndProvider(props: {
     };
   };
 
+  const setDragging = useEditorStore((s) => s.setDragging);
+
   const onDragStart = (e: DragStartEvent) => {
     closeToolbarsRef.current();
-
+    setDragging(true);
     const id = String(e.active.id);
     const kind = e.active.data.current?.kind;
 
@@ -223,10 +225,12 @@ export function EditorDndProvider(props: {
   };
 
   const onDragCancel = (_e: DragCancelEvent) => {
+    setDragging(false);
     clearDndState();
   };
 
   const onDragEnd = (_e: DragEndEvent) => {
+    setDragging(false);
     if (!activeDrag || !dropTarget) {
       clearDndState();
       return;

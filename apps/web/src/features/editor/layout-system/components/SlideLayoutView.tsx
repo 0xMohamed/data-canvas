@@ -18,7 +18,7 @@ function RowDraggable(props: { rowId: string; children: React.ReactNode }) {
     <div
       ref={setNodeRef}
       className={cn(
-        "relative",
+        "relative group/row",
         "transition-[opacity] duration-150",
         isDragging && "opacity-40",
       )}
@@ -27,7 +27,7 @@ function RowDraggable(props: { rowId: string; children: React.ReactNode }) {
         type="button"
         ref={setActivatorNodeRef}
         className={cn(
-          "group",
+          "group/handle",
           "absolute -left-1.5 top-1/2 -translate-x-full -translate-y-1/2",
           "w-6 rounded-lg py-2",
           "border border-white/10 bg-black/35 backdrop-blur",
@@ -35,6 +35,9 @@ function RowDraggable(props: { rowId: string; children: React.ReactNode }) {
           "hover:bg-black/45 hover:shadow-[0_1px_0_rgba(255,255,255,0.08),0_14px_30px_rgba(0,0,0,0.45),0_0_18px_rgba(99,102,241,0.25)]",
           "cursor-grab active:cursor-grabbing",
           "flex items-center justify-center",
+          "transition-[opacity,transform,background-color] duration-150",
+          "opacity-0 group-hover/row:opacity-100",
+          isDragging && "opacity-100",
         )}
         {...attributes}
         {...listeners}
@@ -42,9 +45,9 @@ function RowDraggable(props: { rowId: string; children: React.ReactNode }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center flex-col gap-1">
-          <div className="h-1 w-1 rounded-full bg-white/45 group-hover:bg-[color:var(--accent)]" />
-          <div className="h-1 w-1 rounded-full bg-white/45 group-hover:bg-[color:var(--accent)]" />
-          <div className="h-1 w-1 rounded-full bg-white/45 group-hover:bg-[color:var(--accent)]" />
+          <div className="h-1 w-1 rounded-full bg-white/45 group-hover/handle:bg-[color:var(--accent)]" />
+          <div className="h-1 w-1 rounded-full bg-white/45 group-hover/handle:bg-[color:var(--accent)]" />
+          <div className="h-1 w-1 rounded-full bg-white/45 group-hover/handle:bg-[color:var(--accent)]" />
         </div>
       </button>
       {props.children}
@@ -74,7 +77,7 @@ function BlockDraggable(props: { blockId: string; children: React.ReactNode }) {
       ref={setNodeRef}
       style={style}
       className={cn(
-        "relative min-w-0",
+        "relative min-w-0 group/block",
         "transition-[opacity] duration-150",
         isDragging && "opacity-40",
       )}
@@ -83,7 +86,7 @@ function BlockDraggable(props: { blockId: string; children: React.ReactNode }) {
         type="button"
         ref={setActivatorNodeRef}
         className={cn(
-          "group",
+          "group/handle",
           "absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1/2",
           "h-6 px-2 rounded-lg",
           "border border-white/10 bg-black/40 backdrop-blur",
@@ -91,6 +94,9 @@ function BlockDraggable(props: { blockId: string; children: React.ReactNode }) {
           "hover:bg-black/50 hover:shadow-[0_1px_0_rgba(255,255,255,0.08),0_16px_32px_rgba(0,0,0,0.45),0_0_18px_rgba(99,102,241,0.25)]",
           "cursor-grab active:cursor-grabbing",
           "flex items-center justify-center",
+          "transition-[opacity,transform,background-color] duration-150",
+          "opacity-0 group-hover/block:opacity-100",
+          isDragging && "opacity-100",
         )}
         {...attributes}
         {...listeners}
@@ -98,9 +104,9 @@ function BlockDraggable(props: { blockId: string; children: React.ReactNode }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-1">
-          <div className="h-1 w-1 rounded-full bg-white/45 group-hover:bg-[color:var(--accent)]" />
-          <div className="h-1 w-1 rounded-full bg-white/45 group-hover:bg-[color:var(--accent)]" />
-          <div className="h-1 w-1 rounded-full bg-white/45 group-hover:bg-[color:var(--accent)]" />
+          <div className="h-1 w-1 rounded-full bg-white/45 group-hover/handle:bg-[color:var(--accent)]" />
+          <div className="h-1 w-1 rounded-full bg-white/45 group-hover/handle:bg-[color:var(--accent)]" />
+          <div className="h-1 w-1 rounded-full bg-white/45 group-hover/handle:bg-[color:var(--accent)]" />
         </div>
       </button>
       {props.children}
@@ -131,6 +137,8 @@ export function SlideLayoutView(props: { slideId: string }) {
 
   const pushHistoryCheckpoint = useEditorStore((s) => s.pushHistoryCheckpoint);
 
+  const isAnyDragging = useEditorStore((s) => s.isDragging);
+
   if (!slide) return null;
 
   return (
@@ -142,7 +150,7 @@ export function SlideLayoutView(props: { slideId: string }) {
               ref={(el) => {
                 registerRowRef(rowIndex, el);
               }}
-              className={cn("relative")}
+              className={cn("relative", isAnyDragging && "pointer-events-none")}
             >
               <LayoutRowView
                 row={row}

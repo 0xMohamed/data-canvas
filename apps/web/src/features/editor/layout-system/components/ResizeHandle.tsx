@@ -94,7 +94,7 @@ export function ResizeHandle(props: {
     <div
       ref={ref}
       className={cn(
-        "group relative w-3.5 -mx-[7px] h-full left-1.5",
+        "group/handle relative w-3.5 -mx-[7px] h-full left-1.5",
         disabled
           ? "pointer-events-none opacity-50"
           : "cursor-col-resize hover:cursor-col-resize",
@@ -118,10 +118,12 @@ export function ResizeHandle(props: {
       <div
         className={cn(
           "absolute inset-y-0 left-1/2 -translate-x-1/2",
-          "w-1 rounded-full transition-[background-color,opacity,transform] duration-150",
-          !clamped && "bg-white/15",
-          !clamped && "group-hover:bg-[color:var(--accent)]/70",
-          !clamped && "group-hover:shadow-[0_0_18px_rgba(99,102,241,0.45)]",
+          "w-1 rounded-full transition-[background-color,opacity,transform,shadow] duration-150",
+          "opacity-15 group-hover/row:opacity-100",
+          dragging && "opacity-100",
+          !clamped && "bg-white/90",
+          !clamped && "group-hover/handle:bg-[color:var(--accent)]/70",
+          !clamped && "group-hover/handle:shadow-[0_0_18px_rgba(99,102,241,0.45)]",
           !clamped && dragging && "bg-[color:var(--accent)]/90 w-1",
           clamped && "bg-red-500/80 opacity-100 scale-x-110 shadow-[0_0_18px_rgba(239,68,68,0.35)]",
         )}
