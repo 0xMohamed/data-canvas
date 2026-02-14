@@ -8,6 +8,10 @@ const STRUCTURAL_DEBOUNCE_MS = 200;
 let typingTimer: ReturnType<typeof setTimeout> | null = null;
 let structuralTimer: ReturnType<typeof setTimeout> | null = null;
 
+let lastSavedSnapshotJSON: string | null = null;
+let isSaving = false;
+let needsSaveAgain = false;
+
 function clearTimers() {
   if (typingTimer) {
     clearTimeout(typingTimer);
@@ -41,13 +45,29 @@ export function flushSave(): Promise<boolean> {
     useEditorStore.getState();
   if (!documentId) return Promise.resolve(false);
 
+  // If already saving, just mark that we need to save again once done
+  if (isSaving) {
+    needsSaveAgain = true;
+    return Promise.resolve(false);
+  }
+
+  // Skip if snapshot hasn't changed since last successful save
+  const currentSnapshotJSON = JSON.stringify(snapshot);
+  if (lastSavedSnapshotJSON === currentSnapshotJSON) {
+    return Promise.resolve(true);
+  }
+
+  isSaving = true;
+  needsSaveAgain = false;
   setSaveStatus("saving");
+
   return updateDocumentSnapshot(documentId, {
     baseRevision: revision,
     data: snapshot,
   })
     .then((res) => {
       useEditorStore.setState({ revision: res.revision });
+      lastSavedSnapshotJSON = currentSnapshotJSON;
       setSaveStatus("saved");
       setLastSavedAt(res.savedAt);
       return true;
@@ -65,6 +85,8 @@ export function flushSave(): Promise<boolean> {
               snapshot: details.data as EditorSnapshot,
               revision: details.currentRevision,
             });
+            // After sync, reset lastSavedSnapshotJSON to force next save to be real
+            lastSavedSnapshotJSON = JSON.stringify(details.data);
           }
         }
       } else {
@@ -72,6 +94,13 @@ export function flushSave(): Promise<boolean> {
         setSaveStatus("error", message);
       }
       return false;
+    })
+    .finally(() => {
+      isSaving = false;
+      if (needsSaveAgain) {
+        needsSaveAgain = false;
+        flushSave();
+      }
     });
 }
 
@@ -92,6 +121,11 @@ export function saveOnDragEnd() {
     structuralTimer = null;
   }
   setTimeout(() => flushSave(), 50);
+}
+
+/** Initialize the last saved state (e.g. after initial load) */
+export function initLastSavedState(snapshot: EditorSnapshot) {
+  lastSavedSnapshotJSON = JSON.stringify(snapshot);
 }
 
 /** Best-effort save on beforeunload. */

@@ -91,6 +91,7 @@ type EditorActions = {
   removeSlide: (slideId: string) => void;
   reorderSlides: (activeId: string, overId: string) => void;
   renameSlide: (slideId: string, title: string) => void;
+  setMetaTitle: (title: string) => void;
   setSnapshot: (snapshot: EditorSnapshot) => void;
   pushHistoryCheckpoint: () => void;
   undo: () => void;
@@ -549,6 +550,12 @@ export const useEditorStore = create<EditorState & EditorActions>(
           ...s,
           title,
         })),
+      }));
+    },
+
+    setMetaTitle: (title) => {
+      set((state) => ({
+        meta: state.meta ? { ...state.meta, title } : null,
       }));
     },
 

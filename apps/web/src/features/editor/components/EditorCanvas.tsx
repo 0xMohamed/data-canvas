@@ -1,12 +1,13 @@
 import { useEditorStore } from "../state/editor.store";
 import { SlideView } from "./SlideView";
-
+import { useEffect } from "react";
 import SlidesSidebar from "./SlidesSidebar";
 import CanvasToolbar from "./CanvasToolbar";
 import EditorHeader from "./EditorHeader";
 import { scheduleSaveAfterStructural } from "../state/autosave";
 import { EditorDndProvider } from "../layout-system/state/editorDnd";
 import { DropIndicatorOverlay } from "../layout-system/components/DropIndicatorOverlay";
+import type { SlideTheme } from "../theme";
 
 export function EditorCanvas() {
   const snapshot = useEditorStore((s) => s.snapshot);
@@ -15,6 +16,36 @@ export function EditorCanvas() {
   const selectBlock = useEditorStore((s) => s.selectBlock);
   const addBlock = useEditorStore((s) => s.addBlock);
   const pushHistoryCheckpoint = useEditorStore((s) => s.pushHistoryCheckpoint);
+  const undo = useEditorStore((s) => s.undo);
+  const redo = useEditorStore((s) => s.redo);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+      const isShift = e.shiftKey;
+
+      if (isMod && e.key === "z") {
+        
+        e.preventDefault();
+        if (isShift) {
+          redo();
+        } else {
+          undo();
+        }
+        scheduleSaveAfterStructural();
+      }
+
+      if (isMod && e.key === "y") {
+        e.preventDefault();
+        redo();
+        scheduleSaveAfterStructural();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [undo, redo]);
 
   const currentSlide = currentSlideId
     ? snapshot.slides.find((s) => s.id === currentSlideId)
@@ -33,7 +64,7 @@ export function EditorCanvas() {
             <SlideView />
             <DropIndicatorOverlay />
             <CanvasToolbar
-              activeThemeId={currentSlide.themeId as any}
+              activeThemeId={currentSlide.themeId as SlideTheme["id"]}
               onThemeChange={() => {
                 // theme switching already exists elsewhere; keep noop for now
               }}

@@ -4,7 +4,7 @@ import { useEditorStore } from "../state/editor.store";
 import type { EditorSnapshot, EditorBlock, EditorRow } from "../models/editorTypes";
 import { emptySnapshot } from "../models/editorTypes";
 import { useEffect } from "react";
-import { setupBeforeUnload } from "../state/autosave";
+import { setupBeforeUnload, initLastSavedState } from "../state/autosave";
 
 function normalizeSnapshot(data: unknown): EditorSnapshot {
   if (!data || typeof data !== "object") return emptySnapshot();
@@ -141,6 +141,7 @@ export function useDocument(documentId: string) {
       snapshot,
       revision: doc.revision,
     });
+    initLastSavedState(snapshot);
   }, [query.data, setFromServer]);
 
   useEffect(() => {

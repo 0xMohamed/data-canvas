@@ -9,11 +9,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useLogout, useMe } from "@/features/auth/hooks";
 import { useEditorStore } from "../state/editor.store";
+import { scheduleSaveAfterStructural } from "../state/autosave";
 import { cn } from "@/lib/utils";
 import {
   Undo2,
   Redo2,
-  Eye,
   ChevronLeft,
   Play,
   LogOut,
@@ -33,11 +33,7 @@ export default function EditorHeader() {
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
   const meta = useEditorStore((s) => s.meta);
-
-  // OPTIONAL: لو عندك setter حقيقي للتايتل في الستور
-  const setMetaTitle = (useEditorStore as any)((s: any) => s.setMetaTitle) as
-    | ((title: string) => void)
-    | undefined;
+  const setMetaTitle = useEditorStore((s) => s.setMetaTitle);
 
   const me = useMe();
   const logout = useLogout();
@@ -291,7 +287,10 @@ export default function EditorHeader() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => undo()}
+              onClick={() => {
+                undo();
+                scheduleSaveAfterStructural();
+              }}
               disabled={undoStack.length === 0}
               className={iconBtn}
               title="Undo (Ctrl/⌘ Z)"
@@ -302,7 +301,10 @@ export default function EditorHeader() {
 
             <button
               type="button"
-              onClick={() => redo()}
+              onClick={() => {
+                redo();
+                scheduleSaveAfterStructural();
+              }}
               disabled={redoStack.length === 0}
               className={iconBtn}
               title="Redo (Ctrl/⌘ Shift Z)"
